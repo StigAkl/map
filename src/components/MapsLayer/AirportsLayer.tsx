@@ -1,22 +1,88 @@
 
-import type { Feature, MultiPoint, Point } from "geojson";
-import airports from "../../data/geojson/airports.json"
+import type { Feature, FeatureCollection, MultiPoint, Point } from "geojson";
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { renderToStaticMarkup } from "react-dom/server";
 import { TowerControl } from "lucide-react";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const airportIconColor = "blue-300"
+const AIRPORT_ICON_COLOR = "text-blue-300"
+const AIRPORT_CLUSTER_COLOR = "border-blue-300 bg-blue-300/60 text-blue-300"
+const AIRPORTS_DATA_URL = "/data/geojson/airports.json"
 
-const createAirportIcon = (w?: string, h?: string) => {
-  const width = w ?? "w-4";
-  const height = h ?? "h-4";
+type AirportMarker = {
+  key: string
+  name: string
+  position: [number, number]
+}
+
+type AirportCluster = {
+  getChildCount: () => number
+}
+
+type Props = {
+  clusterAirports: boolean
+}
+
+const AirportsLayer = ({ clusterAirports }: Props) => {
+  const [airportData, setAirportData] =
+    useState<FeatureCollection<Point | MultiPoint> | null>(null)
+
+  useEffect(() => {
+    let ignoreResult = false
+
+    fetch(AIRPORTS_DATA_URL)
+      .then((response) => response.json())
+      .then((data: FeatureCollection<Point | MultiPoint>) => {
+        if (!ignoreResult) {
+          setAirportData(data)
+        }
+      })
+
+    return () => {
+      ignoreResult = true
+    }
+  }, [])
+
+  const airportIcon = useMemo(() => createAirportIcon(), [])
+  const airportMarkers = useMemo(() => {
+    if (!airportData) return []
+
+    return getAirportMarkers(airportData)
+  }, [airportData])
+
+  const markers = airportMarkers.map((airport) => (
+    <Marker
+      key={airport.key}
+      position={airport.position}
+      icon={airportIcon}
+    >
+      <Popup>
+        <strong>{airport.name}</strong>
+      </Popup>
+    </Marker>
+  ))
+
+  if (!clusterAirports) return markers
+
+  return (
+    <MarkerClusterGroup
+      chunkedLoading
+      iconCreateFunction={createClusterIcon}
+      showCoverageOnHover={false}
+      maxClusterRadius={120}
+    >
+      {markers}
+    </MarkerClusterGroup>
+  )
+}
+
+const createAirportIcon = (widthClass = "w-4", heightClass = "h-4") => {
   return L.divIcon({
     html: renderToStaticMarkup(
-      <div className={`${width} ${height} rounded-full flex items-center justify-center shadow`}>
-        <TowerControl className={`text-${airportIconColor}`} />
+      <div className={`${widthClass} ${heightClass} flex items-center justify-center rounded-full shadow`}>
+        <TowerControl className={AIRPORT_ICON_COLOR} />
       </div>
     ),
     className: "",
@@ -25,22 +91,9 @@ const createAirportIcon = (w?: string, h?: string) => {
   })
 }
 
-const createClusterIcon = (cluster) => {
-  const count = cluster.getChildCount()
-
-  let size = 32
-
-  if (count > 100) {
-    size = 80
-  } else if (count > 50) {
-    size = 70
-  }
-  else if (count > 30) {
-    size = 60
-  }
-  else if (count >= 10) {
-    size = 45
-  }
+const createClusterIcon = (cluster: AirportCluster) => {
+  const airportCount = cluster.getChildCount()
+  const iconSize = getClusterIconSize(airportCount)
 
   return L.divIcon({
     html: renderToStaticMarkup(
@@ -51,75 +104,55 @@ const createClusterIcon = (cluster) => {
           flex
           items-center
           justify-center
-          bg-${airportIconColor}/60
           font-bold
           shadow-lg
-          text-${airportIconColor}
-          border border-${airportIconColor}
+          border
+          ${AIRPORT_CLUSTER_COLOR}
         `}
         style={{
-          width: `${size}px`,
-          height: `${size}px`,
+          width: `${iconSize}px`,
+          height: `${iconSize}px`,
         }}
       >
-        {count}
+        {airportCount}
       </div>
     ),
     className: "",
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    iconSize: [iconSize, iconSize],
+    iconAnchor: [iconSize / 2, iconSize / 2],
   })
 }
 
-type Props = {
-  enableClustering: boolean
+const getClusterIconSize = (airportCount: number) => {
+  if (airportCount > 100) return 80
+  if (airportCount > 50) return 70
+  if (airportCount > 30) return 60
+  if (airportCount >= 10) return 45
+
+  return 32
 }
-const AirportsLayer = ({ enableClustering }: Props) => {
-  const airportIcon = useMemo(() => createAirportIcon(), [])
 
-  const markers = useMemo(() => {
-    return airports.features.flatMap((feature, fi) => {
-      if (
-        feature.geometry.type !== "Point" &&
-        feature.geometry.type !== "MultiPoint"
-      ) {
-        return []
-      }
+const getAirportMarkers = (
+  airportData: FeatureCollection<Point | MultiPoint>
+): AirportMarker[] => {
+  return airportData.features.flatMap((feature, featureIndex) => {
+    if (
+      feature.geometry.type !== "Point" &&
+      feature.geometry.type !== "MultiPoint"
+    ) {
+      return []
+    }
 
-      const positions = getAirportPositions(feature as Feature<Point | MultiPoint>)
+    const positions = getAirportPositions(feature as Feature<Point | MultiPoint>)
+    const airportName = feature.properties?.name ?? "Unknown airport"
+    const airportCode = feature.properties?.iata_code ?? featureIndex
 
-      return positions.map((position, i) => ({
-        key: `${feature.properties?.iata_code ?? fi}-${i}-${feature.properties?.name}`,
-        position,
-        name: feature.properties?.name ?? "Unknown",
-      }))
-    })
-  }, [])
-
-  const mappedMarkers = markers.map((marker) => (
-    <Marker
-      key={marker.key}
-      position={marker.position}
-      icon={airportIcon}
-    >
-      <Popup>
-        <strong>{marker.name}</strong>
-      </Popup>
-    </Marker>
-  ))
-
-  if (!enableClustering) return mappedMarkers
-
-  return (
-    <MarkerClusterGroup
-      chunkedLoading
-      iconCreateFunction={createClusterIcon}
-      showCoverageOnHover={false}
-      maxClusterRadius={120}
-    >
-      {mappedMarkers}
-    </MarkerClusterGroup>
-  )
+    return positions.map((position, positionIndex) => ({
+      key: `${airportCode}-${positionIndex}-${airportName}`,
+      name: airportName,
+      position,
+    }))
+  })
 }
 
 function getAirportPositions(feature: Feature<Point | MultiPoint>) {
