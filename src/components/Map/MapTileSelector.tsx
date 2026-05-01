@@ -2,18 +2,21 @@ import { availableMapTiles } from "../../config"
 
 type Props = {
   selectedTileId: string
-  onChange: (tileId: string) => void
+  onTileChange: (tileId: string) => void
 }
 
-const MapTileSelector = ({ selectedTileId, onChange }: Props) => {
+const MapTileSelector = ({ selectedTileId, onTileChange }: Props) => {
   return (
-    <div className="fixed z-400 right-5 top-2 flex flex-col gap-4 ">
+    <div className="fixed right-5 top-2 z-400 flex flex-col gap-4">
       <select
         className="bg-gray-600 text-white p-2"
         value={selectedTileId}
-        onChange={(e) => onChange(e.target.value)}>
-        {availableMapTiles.map(m => (
-          <option key={m.id} value={m.id}>{m.name}</option>
+        onChange={(event) => onTileChange(event.target.value)}
+      >
+        {availableMapTiles.map((tileLayer) => (
+          <option key={tileLayer.id} value={tileLayer.id}>
+            {tileLayer.name}
+          </option>
         ))}
       </select>
     </div>
