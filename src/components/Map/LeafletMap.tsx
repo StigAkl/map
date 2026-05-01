@@ -4,6 +4,7 @@ import { oslo } from "../../data/test_coordinates";
 import { availableMapTiles } from "../../config";
 import { lazy, Suspense, useMemo, useState } from "react";
 import MapTileSelector from "./MapTileSelector";
+import DrawingPanel from "./DrawingPanel";
 
 const AirportsLayer = lazy(() => import("../MapsLayer/AirportsLayer"));
 const SubmarineCablesLayer = lazy(
@@ -44,6 +45,8 @@ const LeafletMap = () => {
           selectedTileId={selectedTileId}
           onTileChange={setSelectedTileId}
         />
+
+        <DrawingPanel />
 
         <MapOverlayControls
           showSubmarineCables={showSubmarineCables}
