@@ -13,6 +13,7 @@ const SubmarineCablesLayer = lazy(
 const LeafletMap = () => {
   const [selectedTileId, setSelectedTileId] = useState(availableMapTiles[0].id);
   const [showSubmarineCables, setShowSubmarineCables] = useState(false);
+  const [showAirports, setShowAirports] = useState(true);
   const [clusterAirports, setClusterAirports] = useState(true);
 
   const selectedTileLayer = useMemo(() => {
@@ -33,9 +34,11 @@ const LeafletMap = () => {
           </Suspense>
         )}
 
-        <Suspense fallback={null}>
-          <AirportsLayer clusterAirports={clusterAirports} />
-        </Suspense>
+        {showAirports && (
+          <Suspense fallback={null}>
+            <AirportsLayer clusterAirports={clusterAirports} />
+          </Suspense>
+        )}
 
         <MapTileSelector
           selectedTileId={selectedTileId}
@@ -44,8 +47,10 @@ const LeafletMap = () => {
 
         <MapOverlayControls
           showSubmarineCables={showSubmarineCables}
+          showAirports={showAirports}
           clusterAirports={clusterAirports}
           onShowSubmarineCablesChange={setShowSubmarineCables}
+          onShowAirportsChange={setShowAirports}
           onClusterAirportsChange={setClusterAirports}
         />
       </MapContainer>
@@ -55,15 +60,19 @@ const LeafletMap = () => {
 
 type MapOverlayControlsProps = {
   showSubmarineCables: boolean;
+  showAirports: boolean;
   clusterAirports: boolean;
   onShowSubmarineCablesChange: (showSubmarineCables: boolean) => void;
+  onShowAirportsChange: (showAirports: boolean) => void;
   onClusterAirportsChange: (clusterAirports: boolean) => void;
 };
 
 const MapOverlayControls = ({
   showSubmarineCables,
+  showAirports,
   clusterAirports,
   onShowSubmarineCablesChange,
+  onShowAirportsChange,
   onClusterAirportsChange,
 }: MapOverlayControlsProps) => {
   return (
@@ -84,7 +93,18 @@ const MapOverlayControls = ({
         <input
           className="bg-amber-400"
           type="checkbox"
+          checked={showAirports}
+          onChange={(event) => onShowAirportsChange(event.target.checked)}
+        />
+        Vis flyplasser
+      </label>
+
+      <label className="mt-2 flex items-center gap-2 text-white">
+        <input
+          className="bg-amber-400"
+          type="checkbox"
           checked={clusterAirports}
+          disabled={!showAirports}
           onChange={(event) => onClusterAirportsChange(event.target.checked)}
         />
         Cluster flyplasser
