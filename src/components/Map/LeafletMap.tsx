@@ -5,6 +5,7 @@ import { availableMapTiles } from "../../config";
 import { lazy, Suspense, useMemo, useState } from "react";
 import MapTileSelector from "./MapTileSelector";
 import DrawingPanel from "./DrawingPanel";
+import AisLayer from "../MapsLayer/AisLayer";
 
 const AirportsLayer = lazy(() => import("../MapsLayer/AirportsLayer"));
 const SubmarineCablesLayer = lazy(
@@ -56,6 +57,8 @@ const LeafletMap = () => {
           onShowAirportsChange={setShowAirports}
           onClusterAirportsChange={setClusterAirports}
         />
+
+        <AisLayer />
       </MapContainer>
     </div>
   );

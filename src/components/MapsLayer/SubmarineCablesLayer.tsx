@@ -47,7 +47,7 @@ const SubmarineCablesLayer = () => {
       style={(feature) => ({
         color: feature?.properties?.color ?? "#00ff00",
         opacity: 1,
-        weight: 0.7,
+        weight: 1.7,
       })}
     />
   );

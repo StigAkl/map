@@ -6,7 +6,7 @@ import { TowerControl } from "lucide-react";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { useEffect, useMemo, useState } from "react";
 
-const AIRPORT_ICON_COLOR = "text-blue-300";
+const AIRPORT_ICON_COLOR = "text-red-300";
 const AIRPORT_CLUSTER_COLOR = "border-blue-300 bg-blue-300/60 text-blue-300";
 const AIRPORTS_DATA_URL = (import.meta.env.BASE_URL ?? "").concat(
   "data/geojson/airports.json",
